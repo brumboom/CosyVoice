@@ -22,6 +22,32 @@ def contains_chinese(text):
     return bool(chinese_char_pattern.search(text))
 
 
+def contains_cyrillic(text):
+    return bool(regex.search(r'\p{Script=Cyrillic}', text))
+
+
+def split_cyrillic_text(text, tokenize, token_max_n=80, merge_len=20):
+    """Group sentences without rewriting punctuation, numbers or whitespace.
+
+    The token limit is soft: an individual sentence is never truncated. Only
+    punctuation followed by whitespace is a boundary, keeping dates, decimal
+    numbers and times intact. Joining the returned chunks recovers the input.
+    """
+    chunks = []
+    current = ''
+    for sentence in re.split(r'(?<=[.!?;])(?=\s)', text):
+        if current and len(tokenize(current + sentence)) > token_max_n:
+            chunks.append(current)
+            current = ''
+        current += sentence
+    if current:
+        if chunks and len(tokenize(current)) < merge_len:
+            chunks[-1] += current
+        else:
+            chunks.append(current)
+    return chunks
+
+
 # replace special symbol
 def replace_corner_mark(text):
     text = text.replace('²', '平方')

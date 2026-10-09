@@ -25,6 +25,7 @@ import re
 import inflect
 from cosyvoice.utils.file_utils import logging, load_wav
 from cosyvoice.utils.frontend_utils import contains_chinese, replace_blank, replace_corner_mark, remove_bracket, spell_out_number, split_paragraph, is_only_punctuation
+from cosyvoice.utils.frontend_utils import contains_cyrillic, split_cyrillic_text
 
 
 class CosyVoiceFrontEnd:
@@ -134,6 +135,12 @@ class CosyVoiceFrontEnd:
         if text_frontend is False or text == '':
             return [text] if split is True else text
         text = text.strip()
+        # The zh/en normalizers (including the inflect fallback) do not support
+        # Cyrillic. Keep mixed-script input intact too, before choosing a backend.
+        if contains_cyrillic(text):
+            if not split:
+                return text
+            return split_cyrillic_text(text, partial(self.tokenizer.encode, allowed_special=self.allowed_special))
         if self.text_frontend == 'ttsfrd':
             texts = [i["text"] for i in json.loads(self.frd.do_voicegen_frd(text))["sentences"]]
             text = ''.join(texts)
